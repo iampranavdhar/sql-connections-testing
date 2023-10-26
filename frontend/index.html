@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSV to JSON Converter</title>
+    <style>
+      /* Global styles */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f0f0f0;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      h1 {
+        font-size: 48px;
+        margin: 0;
+        color: #000;
+      }
+
+      /* Hero section styles */
+      .hero {
+        background-image: url("background-image.jpg"); /* Add your image path */
+        background-size: cover;
+        background-position: center;
+        color: #ffffff;
+        text-align: center;
+        padding: 100px 0;
+      }
+
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      /* Container for form and results */
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Form styles */
+      input[type="file"] {
+        width: 98%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+
+      button {
+        background-color: #007bff;
+        color: #ffffff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-bottom: 1rem;
+        margin-top: 1rem;
+      }
+
+      #customers {
+        font-family: Arial, Helvetica, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+
+      tr:hover {
+        background-color: #ddd;
+      }
+
+      th {
+        padding-top: 12px;
+        padding-bottom: 12px;
+        text-align: left;
+        background-color: #04aa6d;
+        color: white;
+      }
+
+      /* Table styles */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+        background-color: #007bff;
+        color: #ffffff;
+      }
+
+      /* Responsive design */
+      @media (max-width: 600px) {
+        .container {
+          padding: 10px;
+        }
+
+        table,
+        th,
+        td {
+          border: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <h1>CSV to JSON Converter</h1>
+    </div>
+    <div class="container">
+      <input type="file" id="csvFileInput" accept=".csv" />
+      <button onclick="convertCSVtoJSON()">Convert</button>
+      <div id="tableResult"></div>
+      <button onclick="storeData()" style="display: none">Store Data</button>
+    </div>
+
+    <script>
+      let jsonArray = [];
+
+      function convertCSVtoJSON() {
+        const fileInput = document.getElementById("csvFileInput");
+        const tableResult = document.getElementById("tableResult");
+
+        const file = fileInput.files[0];
+        if (!file) {
+          alert("Please select a CSV file.");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const csvData = event.target.result;
+          const lines = csvData.split("\n");
+          const headers = lines[0].split(",");
+          jsonArray = [];
+
+          for (let i = 1; i < lines.length; i++) {
+            const currentLine = lines[i].split(",");
+            if (currentLine.length !== headers.length) {
+              alert("CSV file is not properly formatted.");
+              return;
+            }
+
+            const jsonObject = {};
+            for (let j = 0; j < headers.length; j++) {
+              jsonObject[headers[j]] = currentLine[j];
+            }
+            jsonArray.push(jsonObject);
+          }
+
+          const jsonString = JSON.stringify(jsonArray, null, 2);
+
+          // Display JSON data as a table
+          const table = document.createElement("table");
+          const headerRow = table.insertRow(0);
+
+          for (const header of headers) {
+            const cell = headerRow.insertCell(-1);
+            cell.textContent = header;
+          }
+
+          for (let i = 0; i < jsonArray.length; i++) {
+            const row = table.insertRow(-1);
+            for (const header of headers) {
+              const cell = row.insertCell(-1);
+              cell.textContent = jsonArray[i][header];
+            }
+          }
+
+          tableResult.innerHTML = "";
+          tableResult.appendChild(table);
+        };
+
+        reader.readAsText(file);
+        // make the store data button visible
+        document.getElementsByTagName("button")[1].style.display = "block";
+      }
+
+      async function storeData() {
+        try {
+          const response = await fetch("http://localhost:3005/insertData", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jsonArray),
+          });
+
+          if (response.ok) {
+            console.log("Data sent to server successfully.");
+          } else {
+            console.error(
+              "Error sending data to server:",
+              response.status,
+              response.statusText
+            );
+          }
+        } catch (error) {
+          console.error("Error sending data to server:", error);
+        }
+      }
+    </script>
+  </body>
+</html>
